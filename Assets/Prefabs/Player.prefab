@@ -181,9 +181,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2983914d4235f4b4a8b8be486818bd39, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 20
+  moveSpeed: 30
   airControl: 0.773
-  jumpForce: 20
+  jumpForce: 69
   coyoteTime: 0.12
   jumpBufferTime: 0.12
   gravity: -50
@@ -193,10 +193,10 @@ MonoBehaviour:
     m_Bits: 8
   groundCheckInset: 0.32
   attackRadius: 18.6
-  knockback: 30.18
+  knockback: 55
   playerMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 64
   slashDuration: 0.18
   slashVisualRadius: 0.9
   slashWidth: 0.07

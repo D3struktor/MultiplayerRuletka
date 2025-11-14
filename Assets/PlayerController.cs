@@ -23,7 +23,7 @@ public class PlayerController : NetworkBehaviour
 
     [Header("Attack")]
     public float attackRadius = 0.75f;
-    public float knockback = 14f;
+    public float knockback = 30f;
     public LayerMask playerMask;
 
     [Header("Attack VFX (KOZAK)")]
@@ -46,18 +46,16 @@ public class PlayerController : NetworkBehaviour
     public float shakeDuration = 0.12f;
     public float shakeFreq = 40f;
 
-    
     Collider2D _col;
     SpriteRenderer _sr;
 
-    bool  _isGrounded;
+    bool _isGrounded;
     float _timeSinceGrounded;
     float _timeSinceJumpPressed = 999f;
 
-    float _horSpeed;        
-    float _vertSpeed;       
+    float _horSpeed;
+    float _vertSpeed;
 
- 
     LineRenderer _slashLR;
     Coroutine _slashRoutine;
     ParticleSystem _sparksPS;
@@ -91,7 +89,6 @@ public class PlayerController : NetworkBehaviour
         bool jumpPressed  = input.JumpPressed;
         bool attackPressed = input.AttackPressed;
 
-
         _timeSinceGrounded    += dt;
         _timeSinceJumpPressed += dt;
 
@@ -114,11 +111,9 @@ public class PlayerController : NetworkBehaviour
             _timeSinceGrounded    = coyoteTime + 1f;
         }
 
-
         _vertSpeed += gravity * dt;
         if (_vertSpeed < maxFallSpeed)
             _vertSpeed = maxFallSpeed;
-
 
         float targetX = move.x * moveSpeed;
         float control = _isGrounded ? 1f : airControl;
@@ -128,7 +123,6 @@ public class PlayerController : NetworkBehaviour
 
         MoveAndCollide(ref delta);
 
-        
         if (Mathf.Abs(_horSpeed) > 0.05f)
         {
             var s = transform.localScale;
@@ -136,12 +130,10 @@ public class PlayerController : NetworkBehaviour
             transform.localScale = s;
         }
 
-      
         if (attackPressed)
             DoAttack();
     }
 
-   
     void MoveAndCollide(ref Vector2 delta)
     {
         if (_col == null)
@@ -156,9 +148,6 @@ public class PlayerController : NetworkBehaviour
         Vector2 center = b.center;
         Vector2 size   = b.size - new Vector3(skin * 2f, skin * 2f, 0f);
 
-        Vector2 pos = transform.position;
-
-        
         if (Mathf.Abs(delta.x) > 0f)
         {
             Vector2 dir  = new Vector2(Mathf.Sign(delta.x), 0f);
@@ -173,7 +162,6 @@ public class PlayerController : NetworkBehaviour
             }
         }
 
-        
         _isGrounded = false;
         if (Mathf.Abs(delta.y) > 0f)
         {
@@ -189,13 +177,11 @@ public class PlayerController : NetworkBehaviour
 
                 if (dir.y < 0f)
                 {
-                    
                     _isGrounded  = true;
                     _vertSpeed   = 0f;
                 }
                 else
                 {
-                    
                     if (_vertSpeed > 0f)
                         _vertSpeed = 0f;
                 }
@@ -204,50 +190,47 @@ public class PlayerController : NetworkBehaviour
 
         transform.position += (Vector3)delta;
     }
+
     public void ApplyKnockbackLocal(Vector2 impulse)
     {
-        _horSpeed += impulse.x;
-        _vertSpeed += impulse.y;
+    _isGrounded = false;
+    _timeSinceGrounded = coyoteTime + 1f; 
+    _horSpeed += impulse.x;
+    _vertSpeed += impulse.y;
     }
 
-    
     void DoAttack()
     {
         float facing = Mathf.Sign(transform.localScale.x);
-        Vector2 center = (Vector2)transform.position + new Vector2(facing * 0.6f, 0.2f);
+        Vector2 center = (Vector2)transform.position + new Vector2(facing * 5.6f, 0.2f);
 
-        Collider2D[] hits = new Collider2D[4];
-        int count = Physics2D.OverlapCircleNonAlloc(center, attackRadius, hits, playerMask);
+        var hits = Physics2D.OverlapCircleAll(center, attackRadius);
 
-        for (int i = 0; i < count; i++)
+        int hitCount = 0;
+
+        foreach (var other in hits)
         {
-            var other = hits[i];
             if (!other || other.gameObject == gameObject) continue;
 
             var victim = other.GetComponent<PlayerController>();
-        if (victim && victim != this)
+            if (victim && victim != this)
+            {
+                hitCount++;
+                Vector2 dir = ((Vector2)victim.transform.position - (Vector2)transform.position).normalized;
+                Vector2 impulse = dir * knockback;
+                impulse.x *= 25f;
+                if (impulse.y <= 0f) impulse.y = 8f;
+                victim.ApplyKnockbackLocal(impulse);
+                victim.RPC_PlayHitFlash();
+            }
+        }
+
+        if (hitCount > 0)
         {
-            Vector2 dir = ((Vector2)victim.transform.position - (Vector2)transform.position).normalized;
-            victim.RPC_ApplyKnockback(dir * knockback);
-            victim.RPC_PlayHitFlash();
+            RPC_PlayAttackVFX(center, facing);
+            RPC_CameraShake(shakeIntensity, shakeDuration, shakeFreq);
         }
-
-        }
-
-        RPC_PlayAttackVFX(center, facing);
-        RPC_CameraShake(shakeIntensity, shakeDuration, shakeFreq);
     }
-
-    
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    void RPC_ApplyKnockback(Vector2 impulse)
-    {
-        
-        
-        _horSpeed += impulse.x;
-        _vertSpeed += impulse.y;
-    }
-
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     void RPC_PlayAttackVFX(Vector2 center, float facing)
@@ -271,7 +254,6 @@ public class PlayerController : NetworkBehaviour
         StartCoroutine(CameraShakeRoutine(intensity, duration, freq));
     }
 
-    
     IEnumerator PlaySlashAndSparks(Vector2 center, float facing)
     {
         if (_slashLR == null) yield break;
