@@ -98,26 +98,24 @@ public class RunnerHandler : MonoBehaviour, INetworkRunnerCallbacks
         }
     }
 
-    public void OnInput(NetworkRunner runner, NetworkInput input)
+public void OnInput(NetworkRunner runner, NetworkInput input)
 {
     PlayerInputData data = new PlayerInputData();
 
-    Vector2 move = new Vector2(
-        Input.GetAxisRaw("Horizontal"),
-        Input.GetAxisRaw("Vertical")
-    ).normalized;
+    float x = Input.GetAxisRaw("Horizontal");
+    float y = Input.GetAxisRaw("Vertical");
 
-    bool jumpDown = Input.GetKeyDown(KeyCode.Space);
-    bool jumpHeld = Input.GetKey(KeyCode.Space);
-    bool attack   = Input.GetMouseButtonDown(0);
+    if (RouletteModifierManager.ReverseControls)
+        x = -x;
 
-    data.Move          = move;
-    data.JumpPressed   = jumpDown;
-    data.JumpHeld      = jumpHeld;
-    data.AttackPressed = attack;
+    data.Move = new Vector2(x, y).normalized;
+    data.JumpPressed   = Input.GetKeyDown(KeyCode.Space);
+    data.JumpHeld      = Input.GetKey(KeyCode.Space);
+    data.AttackPressed = Input.GetMouseButtonDown(0);
 
     input.Set(data);
 }
+
 
 
     // ==========================
