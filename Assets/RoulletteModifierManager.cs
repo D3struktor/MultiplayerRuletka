@@ -2,6 +2,7 @@ using System;
 using Fusion;
 using UnityEngine;
 using TMPro;
+using System.Collections;
 
 public enum GameModifier
 {
@@ -34,12 +35,15 @@ public class RouletteModifierManager : NetworkBehaviour
     [SerializeField] Transform[] arenaObjectsToScale;
     [SerializeField] float tinyScale = 0.5f;
     [SerializeField] float normalScale = 1f;
+    private Coroutine tinyArenaRoutine;
 
     [Networked] public GameModifier CurrentModifier { get; set; }
     [Networked] TickTimer NextRollTimer { get; set; }
 
     GameModifier _lastModifier = GameModifier.None;
     float _labelTimer;
+
+    
 
     void Awake()
     {
@@ -134,22 +138,22 @@ public class RouletteModifierManager : NetworkBehaviour
                 ShowLabel("ACID COLORS");
                 break;
 
-            case GameModifier.TinyArena:
-                if (arenaObjectsToScale == null || arenaObjectsToScale.Length == 0)
-                {
-                    Debug.LogWarning("[Roulette] TINY ARENA: arenaObjectsToScale EMPTY");
-                }
-                else
-                {
-                    foreach (var t in arenaObjectsToScale)
+                case GameModifier.TinyArena:
+                    if (arenaObjectsToScale == null || arenaObjectsToScale.Length == 0)
                     {
-                        if (t == null) continue;
-                        t.localScale = Vector3.one * tinyScale;
-                        Debug.Log($"[Roulette] TINY ARENA: scaled {t.name} to {tinyScale}");
+                        Debug.LogWarning("[Roulette] TINY ARENA: arenaObjectsToScale EMPTY");
                     }
-                }
-                ShowLabel("TINY ARENA");
-                break;
+                    else
+                    {
+                        if (tinyArenaRoutine != null)
+                            StopCoroutine(tinyArenaRoutine);
+
+                        tinyArenaRoutine = StartCoroutine(TinyArenaScaleRoutine());
+                    }
+
+                    ShowLabel("TINY ARENA");
+                    break;
+
 
             case GameModifier.ReversedControls:
                 ReverseControls = true;
@@ -157,6 +161,74 @@ public class RouletteModifierManager : NetworkBehaviour
                 break;
         }
     }
+
+        private IEnumerator TinyArenaScaleRoutine()
+    {
+        if (arenaObjectsToScale == null || arenaObjectsToScale.Length == 0)
+            yield break;
+
+
+        float duration = 5f;
+
+        Vector3[] originalScales = new Vector3[arenaObjectsToScale.Length];
+        for (int i = 0; i < arenaObjectsToScale.Length; i++)
+        {
+            if (arenaObjectsToScale[i] == null) continue;
+            originalScales[i] = arenaObjectsToScale[i].localScale;
+        }
+
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            float lerp = Mathf.Clamp01(t / duration);
+
+            for (int i = 0; i < arenaObjectsToScale.Length; i++)
+            {
+                var tr = arenaObjectsToScale[i];
+                if (tr == null) continue;
+
+
+                Vector3 small = new Vector3(originalScales[i].x * tinyScale, originalScales[i].y, originalScales[i].z);
+                tr.localScale = Vector3.Lerp(originalScales[i], small, lerp);
+            }
+
+            yield return null;
+        }
+
+        Debug.Log("[Roulette] TINY ARENA: reached tiny scale");
+
+        t = 0f;
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            float lerp = Mathf.Clamp01(t / duration);
+
+            for (int i = 0; i < arenaObjectsToScale.Length; i++)
+            {
+                var tr = arenaObjectsToScale[i];
+                if (tr == null) continue;
+
+                Vector3 small = new Vector3(originalScales[i].x * tinyScale, originalScales[i].y, originalScales[i].z);
+                tr.localScale = Vector3.Lerp(small, originalScales[i], lerp);
+
+            }
+
+            yield return null;
+        }
+
+        for (int i = 0; i < arenaObjectsToScale.Length; i++)
+        {
+            var tr = arenaObjectsToScale[i];
+            if (tr == null) continue;
+
+            tr.localScale = originalScales[i];
+        }
+
+        Debug.Log("[Roulette] TINY ARENA: restored original scale");
+        tinyArenaRoutine = null;
+    }
+
 
     void ShowLabel(string text)
     {

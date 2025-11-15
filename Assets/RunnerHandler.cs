@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Fusion;
 using Fusion.Sockets;
 using UnityEngine;
+using TMPro;
 
 public class RunnerHandler : MonoBehaviour, INetworkRunnerCallbacks
 {
@@ -15,11 +16,15 @@ public class RunnerHandler : MonoBehaviour, INetworkRunnerCallbacks
 
     private NetworkRunner _runner;
 
+    [Header("UI")]
+    [SerializeField] private TMP_Text statusText;
+
     // =========================
     // === BUTTON: HOST GAME ===
     // =========================
     public async void StartHost()
     {
+        if (statusText) statusText.text = "CREATING...";
         Debug.Log("[RunnerHandler] StartHost CLICK!");
 
         if (_runner != null)
@@ -64,6 +69,9 @@ public class RunnerHandler : MonoBehaviour, INetworkRunnerCallbacks
     // ==========================
     public async void StartClient()
     {
+        
+        if (statusText) statusText.text = "JOINING...";
+
         Debug.Log("[RunnerHandler] StartClient CLICK!");
 
         if (_runner != null)

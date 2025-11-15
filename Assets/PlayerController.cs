@@ -142,11 +142,13 @@ public class PlayerController : NetworkBehaviour
             return;
         }
 
-        Bounds b = _col.bounds;
         float skin = groundCheckInset;
 
+
+        Bounds b = _col.bounds;
         Vector2 center = b.center;
         Vector2 size   = b.size - new Vector3(skin * 2f, skin * 2f, 0f);
+
 
         if (Mathf.Abs(delta.x) > 0f)
         {
@@ -162,7 +164,7 @@ public class PlayerController : NetworkBehaviour
             }
         }
 
-        _isGrounded = false;
+
         if (Mathf.Abs(delta.y) > 0f)
         {
             Vector2 dir  = new Vector2(0f, Mathf.Sign(delta.y));
@@ -175,20 +177,29 @@ public class PlayerController : NetworkBehaviour
                 if (hitDist < 0f) hitDist = 0f;
                 delta.y = hitDist * dir.y;
 
-                if (dir.y < 0f)
-                {
-                    _isGrounded  = true;
-                    _vertSpeed   = 0f;
-                }
-                else
-                {
-                    if (_vertSpeed > 0f)
-                        _vertSpeed = 0f;
-                }
+
+                if (dir.y < 0f && _vertSpeed < 0f)
+                    _vertSpeed = 0f;
+                else if (dir.y > 0f && _vertSpeed > 0f)
+                    _vertSpeed = 0f;
             }
         }
 
+
         transform.position += (Vector3)delta;
+
+        b = _col.bounds;
+        center = b.center;
+        size   = b.size - new Vector3(skin * 2f, skin * 2f, 0f);
+
+        float groundCheckDistance = skin * 2f; 
+        var groundHit = Physics2D.BoxCast(center, size, 0f, Vector2.down, groundCheckDistance, groundMask);
+
+        bool groundedNow = groundHit.collider != null && _vertSpeed <= 0.01f;
+        _isGrounded = groundedNow;
+
+        if (_isGrounded && _vertSpeed < 0f)
+            _vertSpeed = 0f;
     }
 
     public void ApplyKnockbackLocal(Vector2 impulse)
@@ -361,7 +372,19 @@ public class PlayerController : NetworkBehaviour
         _slashLR.numCornerVertices = 4;
         _slashLR.textureMode = LineTextureMode.Stretch;
 
-        var mat = new Material(Shader.Find("Sprites/Default"));
+        // >>> TUTAJ: bezpieczne szukanie shadera
+        Shader spriteShader = Shader.Find("Sprites/Default");
+        if (spriteShader == null)
+            spriteShader = Shader.Find("Universal Render Pipeline/2D/Sprite-Lit-Default");
+        if (spriteShader == null)
+            spriteShader = Shader.Find("Universal Render Pipeline/Unlit");
+
+        if (spriteShader == null)
+        {
+            Debug.LogError("[PlayerController] SlashVFX ERROR");
+        }
+
+        var mat = new Material(spriteShader);
         mat.color = slashColor;
         _slashLR.material = mat;
 
@@ -369,6 +392,7 @@ public class PlayerController : NetworkBehaviour
         _slashLR.sortingLayerID = _sr ? _sr.sortingLayerID : 0;
         _slashLR.sortingOrder   = (_sr ? _sr.sortingOrder : 0) + 1;
     }
+
 
     void SetupSparks()
     {
@@ -405,10 +429,22 @@ public class PlayerController : NetworkBehaviour
         trails.ratio = 1f;
 
         var renderer = _sparksPS.GetComponent<ParticleSystemRenderer>();
-        renderer.material = new Material(Shader.Find("Sprites/Default")) { color = sparksColor };
+
+        // >>> ZNOWU: szukamy shadera bezpiecznie
+        Shader spriteShader = Shader.Find("Sprites/Default");
+        if (spriteShader == null)
+            spriteShader = Shader.Find("Universal Render Pipeline/2D/Sprite-Lit-Default");
+        if (spriteShader == null)
+            spriteShader = Shader.Find("Universal Render Pipeline/Unlit");
+
+        if (spriteShader == null)
+            Debug.LogError("[PlayerController] Nie znalazłem shadera do SparksVFX");
+
+        renderer.material = new Material(spriteShader) { color = sparksColor };
         renderer.sortingLayerID = _sr ? _sr.sortingLayerID : 0;
         renderer.sortingOrder   = (_sr ? _sr.sortingOrder : 0) + 2;
     }
+
 
     void PlaySparks(Vector3 worldPos)
     {
