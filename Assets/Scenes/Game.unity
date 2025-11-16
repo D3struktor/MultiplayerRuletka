@@ -147,7 +147,7 @@ Transform:
   m_GameObject: {fileID: 23052379}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -110.6, y: 0, z: 0}
+  m_LocalPosition: {x: -92.6, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -235,7 +235,7 @@ Rigidbody2D:
     serializedVersion: 2
     m_Bits: 0
   m_Interpolate: 0
-  m_SleepingMode: 1
+  m_SleepingMode: 0
   m_CollisionDetection: 1
   m_Constraints: 0
 --- !u!1 &93482533
@@ -407,7 +407,7 @@ Rigidbody2D:
     serializedVersion: 2
     m_Bits: 0
   m_Interpolate: 0
-  m_SleepingMode: 1
+  m_SleepingMode: 0
   m_CollisionDetection: 1
   m_Constraints: 0
 --- !u!1 &321368416
@@ -422,6 +422,7 @@ GameObject:
   - component: {fileID: 321368420}
   - component: {fileID: 321368419}
   - component: {fileID: 321368421}
+  - component: {fileID: 321368422}
   m_Layer: 3
   m_Name: c1
   m_TagString: Untagged
@@ -543,6 +544,24 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1.5935333}
   m_EdgeRadius: 0
+--- !u!114 &321368422
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 321368416}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SortKey: 445531840
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours: []
+  ForceRemoteRenderTimeframe: 0
 --- !u!1 &353824025
 GameObject:
   m_ObjectHideFlags: 0
@@ -659,7 +678,7 @@ Rigidbody2D:
     serializedVersion: 2
     m_Bits: 0
   m_Interpolate: 0
-  m_SleepingMode: 1
+  m_SleepingMode: 0
   m_CollisionDetection: 1
   m_Constraints: 0
 --- !u!1 &394209751
@@ -737,6 +756,8 @@ GameObject:
   - component: {fileID: 636670728}
   - component: {fileID: 636670727}
   - component: {fileID: 636670726}
+  - component: {fileID: 636670730}
+  - component: {fileID: 636670731}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -828,6 +849,38 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &636670730
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 636670725}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 620adae9b63cecb418a822f8ab3192ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  modifierLabel: {fileID: 1269260291}
+--- !u!114 &636670731
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 636670725}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SortKey: 3136150340
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects:
+  - {fileID: 1269260293}
+  NetworkedBehaviours: []
+  ForceRemoteRenderTimeframe: 0
 --- !u!1 &735324898
 GameObject:
   m_ObjectHideFlags: 0
@@ -962,7 +1015,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!61 &1125740271
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -1122,6 +1175,7 @@ GameObject:
   - component: {fileID: 1269260290}
   - component: {fileID: 1269260292}
   - component: {fileID: 1269260291}
+  - component: {fileID: 1269260293}
   m_Layer: 5
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -1247,6 +1301,24 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1269260289}
   m_CullTransparentMesh: 1
+--- !u!114 &1269260293
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1269260289}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SortKey: 1332400744
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours: []
+  ForceRemoteRenderTimeframe: 0
 --- !u!1 &1535522877
 GameObject:
   m_ObjectHideFlags: 0
@@ -1451,15 +1523,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77dcab5c0a6064b4db86a763a017e417, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  modifierLabel: {fileID: 1269260291}
   labelShowTime: 2
   defaultGravity: -50
   defaultKnockback: 14
   lowGravityValue: -15
   crazyKnockbackValue: 300
-  normalTint: {r: 0.9150943, g: 0.06474723, b: 0.06474723, a: 1}
-  acidTint: {r: 0.5, g: 1, b: 0.5, a: 1}
-  extraTintRenderers: []
+  normalTint: {r: 1, g: 0, b: 0, a: 1}
+  acidPlayerTint: {r: 0.5, g: 1, b: 0.5, a: 1}
+  acidWorldTint: {r: 0.7924528, g: 0.76828665, b: 0.10840159, a: 1}
+  extraTintRenderers:
+  - {fileID: 1244355069}
+  - {fileID: 741689126}
   arenaObjectsToScale:
   - {fileID: 587434829}
   tinyScale: 0.5
@@ -1539,7 +1613,7 @@ Transform:
   m_GameObject: {fileID: 1802652376}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 108.2, y: 0, z: 0}
+  m_LocalPosition: {x: 89.8, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1627,7 +1701,7 @@ Rigidbody2D:
     serializedVersion: 2
     m_Bits: 0
   m_Interpolate: 0
-  m_SleepingMode: 1
+  m_SleepingMode: 0
   m_CollisionDetection: 1
   m_Constraints: 0
 --- !u!1 &1942838316

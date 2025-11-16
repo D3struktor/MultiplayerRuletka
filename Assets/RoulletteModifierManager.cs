@@ -1,8 +1,7 @@
 using System;
+using System.Collections;
 using Fusion;
 using UnityEngine;
-using TMPro;
-using System.Collections;
 
 public enum GameModifier
 {
@@ -18,8 +17,8 @@ public class RouletteModifierManager : NetworkBehaviour
 {
     public static RouletteModifierManager Instance;
     public static bool ReverseControls;
+    public static event Action<string, float> OnShowModifierLabel;
 
-    [SerializeField] TextMeshProUGUI modifierLabel;
     [SerializeField] float labelShowTime = 2f;
 
     [SerializeField] float defaultGravity = -50f;
@@ -29,25 +28,36 @@ public class RouletteModifierManager : NetworkBehaviour
     [SerializeField] float crazyKnockbackValue = 300f;
 
     [SerializeField] Color normalTint = Color.white;
-    [SerializeField] Color acidTint = new Color(0.5f, 1f, 0.5f, 1f);
+    [SerializeField] Color acidPlayerTint = new Color(0.5f, 1f, 0.5f, 1f);
+    [SerializeField] Color acidWorldTint = new Color(0.4f, 0.8f, 1f, 1f);
     [SerializeField] SpriteRenderer[] extraTintRenderers;
 
     [SerializeField] Transform[] arenaObjectsToScale;
     [SerializeField] float tinyScale = 0.5f;
     [SerializeField] float normalScale = 1f;
-    private Coroutine tinyArenaRoutine;
+
+    Coroutine tinyArenaRoutine;
+    Coroutine acidCameraRoutine;
+    Coroutine acidSpritesRoutine;
 
     [Networked] public GameModifier CurrentModifier { get; set; }
     [Networked] TickTimer NextRollTimer { get; set; }
 
-    GameModifier _lastModifier = GameModifier.None;
-    float _labelTimer;
-
-    
+    Color[] worldOriginalColors;
 
     void Awake()
     {
         Instance = this;
+
+        if (extraTintRenderers != null && extraTintRenderers.Length > 0)
+        {
+            worldOriginalColors = new Color[extraTintRenderers.Length];
+            for (int i = 0; i < extraTintRenderers.Length; i++)
+            {
+                if (extraTintRenderers[i] != null)
+                    worldOriginalColors[i] = extraTintRenderers[i].color;
+            }
+        }
     }
 
     public override void Spawned()
@@ -61,58 +71,90 @@ public class RouletteModifierManager : NetworkBehaviour
         if (!Object.HasStateAuthority)
             return;
 
-        if (CurrentModifier != _lastModifier)
-        {
-            _lastModifier = CurrentModifier;
-            ApplyModifier();
-        }
-
         if (NextRollTimer.ExpiredOrNotRunning(Runner))
         {
-            Roll();
+            GameModifier rolled = Roll();
+            RpcApplyModifier(rolled);
             NextRollTimer = TickTimer.CreateFromSeconds(Runner, 5f);
         }
     }
 
-    void Roll()
+    GameModifier Roll()
     {
         Array values = Enum.GetValues(typeof(GameModifier));
         int i = UnityEngine.Random.Range(1, values.Length);
-        CurrentModifier = (GameModifier)values.GetValue(i);
-        Debug.Log($"[Roulette] Rolled: {CurrentModifier}");
+        GameModifier mod = (GameModifier)values.GetValue(i);
+        return mod;
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RpcApplyModifier(GameModifier modifier, RpcInfo info = default)
+    {
+        CurrentModifier = modifier;
+        ApplyModifier(modifier);
     }
 
     void ApplyModifier()
     {
-        Debug.Log($"[Roulette] Apply: {CurrentModifier}");
+        ApplyModifier(CurrentModifier);
+    }
 
+    void ApplyModifier(GameModifier modifier)
+    {
         ReverseControls = false;
 
-        var players = FindObjectsOfType<PlayerController>();
+        if (tinyArenaRoutine != null)
+        {
+            StopCoroutine(tinyArenaRoutine);
+            tinyArenaRoutine = null;
+        }
+
+        if (acidCameraRoutine != null)
+        {
+            StopCoroutine(acidCameraRoutine);
+            acidCameraRoutine = null;
+        }
+
+        if (acidSpritesRoutine != null)
+        {
+            StopCoroutine(acidSpritesRoutine);
+            acidSpritesRoutine = null;
+        }
+
+        PlayerController[] players = FindObjectsOfType<PlayerController>();
         foreach (var p in players)
         {
-            p.gravity   = defaultGravity;
+            p.gravity = defaultGravity;
             p.knockback = defaultKnockback;
-
-            var srP = p.GetComponent<SpriteRenderer>();
-            if (srP != null) srP.color = normalTint;
+            SpriteRenderer sr = p.GetComponent<SpriteRenderer>();
+            if (sr != null)
+                sr.color = normalTint;
         }
 
-        if (arenaObjectsToScale != null)
+        if (arenaObjectsToScale != null && arenaObjectsToScale.Length > 0)
         {
             foreach (var t in arenaObjectsToScale)
+            {
                 if (t != null)
                     t.localScale = Vector3.one * normalScale;
+            }
         }
 
-        if (extraTintRenderers != null)
+        if (extraTintRenderers != null && extraTintRenderers.Length > 0)
         {
-            foreach (var r in extraTintRenderers)
-                if (r != null)
+            for (int i = 0; i < extraTintRenderers.Length; i++)
+            {
+                SpriteRenderer r = extraTintRenderers[i];
+                if (r == null) continue;
+
+                if (worldOriginalColors != null && worldOriginalColors.Length == extraTintRenderers.Length)
+                    r.color = worldOriginalColors[i];
+                else
                     r.color = normalTint;
+            }
         }
 
-        switch (CurrentModifier)
+        switch (modifier)
         {
             case GameModifier.LowGravity:
                 foreach (var p in players)
@@ -129,52 +171,57 @@ public class RouletteModifierManager : NetworkBehaviour
             case GameModifier.AcidColors:
                 foreach (var p in players)
                 {
-                    var srP = p.GetComponent<SpriteRenderer>();
-                    if (srP != null) srP.color = acidTint;
+                    SpriteRenderer sr = p.GetComponent<SpriteRenderer>();
+                    if (sr != null)
+                        sr.color = acidPlayerTint;
                 }
-                if (extraTintRenderers != null)
+
+                if (extraTintRenderers != null && extraTintRenderers.Length > 0)
+                {
                     foreach (var r in extraTintRenderers)
-                        if (r != null) r.color = acidTint;
+                    {
+                        if (r != null)
+                            r.color = acidWorldTint;
+                    }
+                }
+
+                acidSpritesRoutine = StartCoroutine(AcidSpritesRoutine());
+                acidCameraRoutine = StartCoroutine(AcidCameraRoutine());
                 ShowLabel("ACID COLORS");
                 break;
 
-                case GameModifier.TinyArena:
-                    if (arenaObjectsToScale == null || arenaObjectsToScale.Length == 0)
-                    {
-                        Debug.LogWarning("[Roulette] TINY ARENA: arenaObjectsToScale EMPTY");
-                    }
-                    else
-                    {
-                        if (tinyArenaRoutine != null)
-                            StopCoroutine(tinyArenaRoutine);
-
-                        tinyArenaRoutine = StartCoroutine(TinyArenaScaleRoutine());
-                    }
-
-                    ShowLabel("TINY ARENA");
-                    break;
-
+            case GameModifier.TinyArena:
+                if (arenaObjectsToScale != null && arenaObjectsToScale.Length > 0)
+                    tinyArenaRoutine = StartCoroutine(TinyArenaScaleRoutine());
+                ShowLabel("TINY ARENA");
+                break;
 
             case GameModifier.ReversedControls:
                 ReverseControls = true;
                 ShowLabel("REVERSED CONTROLS");
                 break;
+
+            case GameModifier.None:
+                ShowLabel("NONE");
+                break;
         }
     }
 
-        private IEnumerator TinyArenaScaleRoutine()
+    IEnumerator TinyArenaScaleRoutine()
     {
         if (arenaObjectsToScale == null || arenaObjectsToScale.Length == 0)
+        {
+            tinyArenaRoutine = null;
             yield break;
-
+        }
 
         float duration = 5f;
-
         Vector3[] originalScales = new Vector3[arenaObjectsToScale.Length];
+
         for (int i = 0; i < arenaObjectsToScale.Length; i++)
         {
-            if (arenaObjectsToScale[i] == null) continue;
-            originalScales[i] = arenaObjectsToScale[i].localScale;
+            if (arenaObjectsToScale[i] != null)
+                originalScales[i] = arenaObjectsToScale[i].localScale;
         }
 
         float t = 0f;
@@ -185,9 +232,8 @@ public class RouletteModifierManager : NetworkBehaviour
 
             for (int i = 0; i < arenaObjectsToScale.Length; i++)
             {
-                var tr = arenaObjectsToScale[i];
+                Transform tr = arenaObjectsToScale[i];
                 if (tr == null) continue;
-
 
                 Vector3 small = new Vector3(originalScales[i].x * tinyScale, originalScales[i].y, originalScales[i].z);
                 tr.localScale = Vector3.Lerp(originalScales[i], small, lerp);
@@ -195,8 +241,6 @@ public class RouletteModifierManager : NetworkBehaviour
 
             yield return null;
         }
-
-        Debug.Log("[Roulette] TINY ARENA: reached tiny scale");
 
         t = 0f;
         while (t < duration)
@@ -206,12 +250,11 @@ public class RouletteModifierManager : NetworkBehaviour
 
             for (int i = 0; i < arenaObjectsToScale.Length; i++)
             {
-                var tr = arenaObjectsToScale[i];
+                Transform tr = arenaObjectsToScale[i];
                 if (tr == null) continue;
 
                 Vector3 small = new Vector3(originalScales[i].x * tinyScale, originalScales[i].y, originalScales[i].z);
                 tr.localScale = Vector3.Lerp(small, originalScales[i], lerp);
-
             }
 
             yield return null;
@@ -219,32 +262,95 @@ public class RouletteModifierManager : NetworkBehaviour
 
         for (int i = 0; i < arenaObjectsToScale.Length; i++)
         {
-            var tr = arenaObjectsToScale[i];
+            Transform tr = arenaObjectsToScale[i];
             if (tr == null) continue;
-
             tr.localScale = originalScales[i];
         }
 
-        Debug.Log("[Roulette] TINY ARENA: restored original scale");
         tinyArenaRoutine = null;
     }
 
+    IEnumerator AcidSpritesRoutine()
+    {
+        float t = 0f;
+
+        while (true)
+        {
+            t += Time.deltaTime;
+            float baseHue = Mathf.Repeat(t * 0.5f, 1f);
+
+            PlayerController[] players = FindObjectsOfType<PlayerController>();
+            for (int i = 0; i < players.Length; i++)
+            {
+                SpriteRenderer sr = players[i].GetComponent<SpriteRenderer>();
+                if (sr == null) continue;
+
+                float h = Mathf.Repeat(baseHue + i * 0.13f, 1f);
+                Color c = Color.HSVToRGB(h, 0.9f, 1f);
+                sr.color = c;
+            }
+
+            if (extraTintRenderers != null && extraTintRenderers.Length > 0)
+            {
+                for (int i = 0; i < extraTintRenderers.Length; i++)
+                {
+                    SpriteRenderer r = extraTintRenderers[i];
+                    if (r == null) continue;
+
+                    float h = Mathf.Repeat(baseHue + 0.5f + i * 0.17f, 1f);
+                    Color c = Color.HSVToRGB(h, 0.7f, 0.9f);
+                    r.color = c;
+                }
+            }
+
+            yield return null;
+        }
+    }
+
+    IEnumerator AcidCameraRoutine()
+    {
+        float duration = 5f;
+        Camera[] cams = Camera.allCameras;
+        if (cams == null || cams.Length == 0)
+        {
+            acidCameraRoutine = null;
+            yield break;
+        }
+
+        Color[] originalColors = new Color[cams.Length];
+        for (int i = 0; i < cams.Length; i++)
+        {
+            if (cams[i] != null)
+                originalColors[i] = cams[i].backgroundColor;
+        }
+
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            float hue = Mathf.Repeat(t * 0.6f, 1f);
+            Color acidColor = Color.HSVToRGB(hue, 0.9f, 1f);
+
+            for (int i = 0; i < cams.Length; i++)
+            {
+                if (cams[i] != null)
+                    cams[i].backgroundColor = acidColor;
+            }
+
+            yield return null;
+        }
+
+        for (int i = 0; i < cams.Length; i++)
+        {
+            if (cams[i] != null)
+                cams[i].backgroundColor = originalColors[i];
+        }
+
+        acidCameraRoutine = null;
+    }
 
     void ShowLabel(string text)
     {
-        if (modifierLabel == null) return;
-        modifierLabel.text = text;
-        modifierLabel.gameObject.SetActive(true);
-        _labelTimer = labelShowTime;
-    }
-
-    void Update()
-    {
-        if (modifierLabel != null && _labelTimer > 0f)
-        {
-            _labelTimer -= Time.deltaTime;
-            if (_labelTimer <= 0f)
-                modifierLabel.gameObject.SetActive(false);
-        }
+        OnShowModifierLabel?.Invoke(text, labelShowTime);
     }
 }
