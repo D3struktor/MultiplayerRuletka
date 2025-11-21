@@ -26,7 +26,7 @@ public class PlayerController : NetworkBehaviour
     public float knockback = 30f;
     public LayerMask playerMask;
 
-    [Header("Attack VFX (KOZAK)")]
+    [Header("Attack VFX")]
     public float slashDuration = 0.18f;
     public float slashVisualRadius = 0.9f;
     public float slashWidth = 0.07f;
@@ -35,13 +35,13 @@ public class PlayerController : NetworkBehaviour
     public Color hitFlashColor = new Color(1f, 0.2f, 0.2f, 1f);
     public float hitFlashDuration = 0.1f;
 
-    [Header("Sparks (iskry)")]
+    [Header("Sparks")]
     public Color sparksColor = new Color(1f, 0.2f, 0.2f, 1f);
     public float sparksLifetime = 0.25f;
     public int sparksBurstCount = 16;
     public float sparksSpeed = 5f;
 
-    [Header("Camera Shake (tylko u InputAuthority)")]
+    [Header("Camera Shake")]
     public float shakeIntensity = 0.2f;
     public float shakeDuration = 0.12f;
     public float shakeFreq = 40f;
@@ -371,8 +371,6 @@ public class PlayerController : NetworkBehaviour
         _slashLR.numCapVertices = 4;
         _slashLR.numCornerVertices = 4;
         _slashLR.textureMode = LineTextureMode.Stretch;
-
-        // >>> TUTAJ: bezpieczne szukanie shadera
         Shader spriteShader = Shader.Find("Sprites/Default");
         if (spriteShader == null)
             spriteShader = Shader.Find("Universal Render Pipeline/2D/Sprite-Lit-Default");
