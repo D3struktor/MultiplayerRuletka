@@ -15,8 +15,6 @@ public class KillZone : MonoBehaviour
         var pc = other.GetComponentInParent<PlayerController>();
         if (pc == null)
             return;
-
-        // gameplay robi TYLKO state authority
         if (!pc.Object.HasStateAuthority)
             return;
 
